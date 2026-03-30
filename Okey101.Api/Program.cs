@@ -108,7 +108,10 @@ try
     await db.Database.MigrateAsync();
     logger.LogInformation("Database migrations applied successfully.");
 
-    // Seed development data only in dev
+    // Seed essential data (game center + table) for all environments
+    await Okey101.Api.Data.DataSeeder.SeedEssentialDataAsync(app.Services);
+
+    // Seed extra development data only in dev
     if (app.Environment.IsDevelopment())
     {
         await Okey101.Api.Data.DataSeeder.SeedDevelopmentDataAsync(app.Services);

@@ -8,6 +8,42 @@ namespace Okey101.Api.Data;
 
 public static class DataSeeder
 {
+    public static async Task SeedEssentialDataAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var tenantProvider = scope.ServiceProvider.GetRequiredService<ITenantProvider>();
+        tenantProvider.SetTenantId(null);
+
+        // Ensure at least one game center exists
+        var hasAny = await db.GameCenters.IgnoreQueryFilters().AnyAsync();
+        if (!hasAny)
+        {
+            var centerId = Guid.Parse(AuthConfiguration.DevTenantId);
+            db.GameCenters.Add(new GameCenter
+            {
+                Id = centerId,
+                Name = "Walvero Okey Center",
+                Location = "Baku, Azerbaijan",
+                IsActive = true,
+                MaxTables = 20
+            });
+            await db.SaveChangesAsync();
+
+            // Add a default table
+            db.Tables.Add(new Table
+            {
+                Id = Guid.NewGuid(),
+                TenantId = centerId,
+                TableNumber = 1,
+                Status = TableStatus.Active,
+                QrCodeIdentifier = "TABLE-1",
+                GameCenterId = centerId
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
     public static async Task SeedDevelopmentDataAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
