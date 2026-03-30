@@ -67,7 +67,9 @@ public static class AuthConfiguration
                             };
                             context.Principal = new ClaimsPrincipal(
                                 new ClaimsIdentity(claims, JwtBearerDefaults.AuthenticationScheme));
+                            context.Token = null!;
                             context.Success();
+                            return Task.CompletedTask;
                         }
                     }
 
