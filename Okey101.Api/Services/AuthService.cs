@@ -118,9 +118,10 @@ public class AuthService : IAuthService
             existing.IsUsed = true;
         }
 
-        // Fixed OTP for test phone number
-        var otpCode = phoneNumber.TrimEnd() == "+994515262222"
-            ? "789123"
+        // Fixed OTP for dev/test phone numbers
+        var devPhones = new HashSet<string> { "+994515262222", "+905551000001", "+905551000002" };
+        var otpCode = devPhones.Contains(phoneNumber.TrimEnd())
+            ? "123456"
             : RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
 
@@ -180,15 +181,10 @@ public class AuthService : IAuthService
 
         if (player == null)
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentException("Name is required for new player registration.");
-            }
-
             player = new Player
             {
                 Id = Guid.NewGuid(),
-                Name = name,
+                Name = string.IsNullOrWhiteSpace(name) ? $"Player_{phoneHash[..8]}" : name,
                 PhoneNumber = _phoneEncryption.Encrypt(phoneNumber),
                 PhoneNumberHash = phoneHash,
                 Role = UserRole.Player,
