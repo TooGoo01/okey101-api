@@ -92,7 +92,7 @@ public static partial class AuthEndpoints
                 tenantId = player.TenantId,
                 gameCenterName
             }));
-        }).RequireAuthorization("AdminOnly");
+        }).RequireAuthorization();
 
         return group;
     }

@@ -15,11 +15,12 @@ public static class DataSeeder
         var tenantProvider = scope.ServiceProvider.GetRequiredService<ITenantProvider>();
         tenantProvider.SetTenantId(null);
 
+        var centerId = Guid.Parse(AuthConfiguration.DevTenantId);
+
         // Ensure at least one game center exists
         var hasAny = await db.GameCenters.IgnoreQueryFilters().AnyAsync();
         if (!hasAny)
         {
-            var centerId = Guid.Parse(AuthConfiguration.DevTenantId);
             db.GameCenters.Add(new GameCenter
             {
                 Id = centerId,
@@ -39,6 +40,28 @@ public static class DataSeeder
                 Status = TableStatus.Active,
                 QrCodeIdentifier = "TABLE-1",
                 GameCenterId = centerId
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // Seed default admin player (runs in all environments)
+        var phoneEncryption = scope.ServiceProvider.GetRequiredService<IPhoneEncryptionService>();
+        var adminPhone = "+905551000001";
+        var phoneHash = phoneEncryption.Hash(adminPhone);
+        var adminExists = await db.Players
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.PhoneNumberHash == phoneHash);
+
+        if (!adminExists)
+        {
+            db.Players.Add(new Player
+            {
+                Id = Guid.Parse(AuthConfiguration.DevPlayerId),
+                Name = "Admin",
+                PhoneNumber = phoneEncryption.Encrypt(adminPhone),
+                PhoneNumberHash = phoneHash,
+                Role = UserRole.GameCenterAdmin,
+                TenantId = centerId
             });
             await db.SaveChangesAsync();
         }
