@@ -13,6 +13,9 @@
 ## Environment
 appsettings.Development.json
 
+## Publish output
+publish/
+
 ## Docker
 sqlserver-data/
 
