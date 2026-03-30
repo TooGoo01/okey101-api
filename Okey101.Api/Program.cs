@@ -79,11 +79,9 @@ builder.Services.AddCors(options =>
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
         if (allowedOrigins is null || allowedOrigins.Length == 0)
         {
-            if (!builder.Environment.IsDevelopment())
-            {
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured in non-development environments.");
-            }
-            allowedOrigins = new[] { "http://localhost:5173" };
+            allowedOrigins = builder.Environment.IsDevelopment()
+                ? new[] { "http://localhost:5173" }
+                : new[] { "https://walvero-okey-api.azurewebsites.net" };
         }
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
@@ -100,14 +98,16 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Apply pending migrations and seed development data
+// Apply pending migrations
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+// Seed development data only in dev
 if (app.Environment.IsDevelopment())
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
-    }
     await Okey101.Api.Data.DataSeeder.SeedDevelopmentDataAsync(app.Services);
 }
 
