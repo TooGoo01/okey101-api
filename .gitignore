@@ -1,0 +1,21 @@
+## .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+*.csproj.user
+
+## IDE
+.vs/
+.vscode/
+.idea/
+
+## Environment
+appsettings.Development.json
+
+## Docker
+sqlserver-data/
+
+## OS
+.DS_Store
+Thumbs.db
