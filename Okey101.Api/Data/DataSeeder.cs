@@ -122,19 +122,47 @@ public static class DataSeeder
         string name,
         Guid? fixedId = null)
     {
-        var phoneHash = phoneEncryption.Hash(phone);
+        // If a fixedId is specified, ensure a player with that exact ID exists
+        if (fixedId.HasValue)
+        {
+            var existingById = await db.Players
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.Id == fixedId.Value);
+
+            if (existingById is null)
+            {
+                var phoneHash = phoneEncryption.Hash(phone);
+                db.Players.Add(new Player
+                {
+                    Id = fixedId.Value,
+                    Name = name,
+                    PhoneNumber = phoneEncryption.Encrypt(phone),
+                    PhoneNumberHash = phoneHash,
+                    Role = UserRole.GameCenterAdmin,
+                    TenantId = gameCenterId
+                });
+            }
+            else
+            {
+                existingById.Role = UserRole.GameCenterAdmin;
+                existingById.TenantId ??= gameCenterId;
+            }
+            return;
+        }
+
+        var hash = phoneEncryption.Hash(phone);
         var existing = await db.Players
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(p => p.PhoneNumberHash == phoneHash);
+            .FirstOrDefaultAsync(p => p.PhoneNumberHash == hash);
 
         if (existing is null)
         {
             db.Players.Add(new Player
             {
-                Id = fixedId ?? Guid.NewGuid(),
+                Id = Guid.NewGuid(),
                 Name = name,
                 PhoneNumber = phoneEncryption.Encrypt(phone),
-                PhoneNumberHash = phoneHash,
+                PhoneNumberHash = hash,
                 Role = UserRole.GameCenterAdmin,
                 TenantId = gameCenterId
             });
