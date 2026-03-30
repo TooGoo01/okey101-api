@@ -44,27 +44,12 @@ public static class DataSeeder
             await db.SaveChangesAsync();
         }
 
-        // Seed default admin player (runs in all environments)
+        // Seed default admin players (runs in all environments)
         var phoneEncryption = scope.ServiceProvider.GetRequiredService<IPhoneEncryptionService>();
-        var adminPhone = "+905551000001";
-        var phoneHash = phoneEncryption.Hash(adminPhone);
-        var adminExists = await db.Players
-            .IgnoreQueryFilters()
-            .AnyAsync(p => p.PhoneNumberHash == phoneHash);
-
-        if (!adminExists)
-        {
-            db.Players.Add(new Player
-            {
-                Id = Guid.Parse(AuthConfiguration.DevPlayerId),
-                Name = "Admin",
-                PhoneNumber = phoneEncryption.Encrypt(adminPhone),
-                PhoneNumberHash = phoneHash,
-                Role = UserRole.GameCenterAdmin,
-                TenantId = centerId
-            });
-            await db.SaveChangesAsync();
-        }
+        await SeedAdminPlayer(db, phoneEncryption, centerId,
+            "+994515262222", "Admin", Guid.Parse(AuthConfiguration.DevPlayerId));
+        await SeedAdminPlayer(db, phoneEncryption, centerId,
+            "+905551000001", "Admin Two");
     }
 
     public static async Task SeedDevelopmentDataAsync(IServiceProvider services)
