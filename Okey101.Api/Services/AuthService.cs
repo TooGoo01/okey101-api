@@ -129,7 +129,7 @@ public class AuthService : IAuthService
         var otpCode = FixedOtpPhones.TryGetValue(phoneNumber.TrimEnd(), out var fixedCode)
             ? fixedCode
             : RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-        var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
+        var codeHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode))).ToLowerInvariant();
 
         var otp = new OtpCode
         {
@@ -161,7 +161,7 @@ public class AuthService : IAuthService
 
         if (!isFixedOtp)
         {
-            var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
+            var codeHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode))).ToLowerInvariant();
 
             // Step 1: Find OTP by phone + code hash (regardless of expiry) to distinguish error cases
             var otp = await _dbContext.OtpCodes

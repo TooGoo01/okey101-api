@@ -51,6 +51,6 @@ public class PhoneEncryptionService : IPhoneEncryptionService
     public string Hash(string phoneNumber)
     {
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(phoneNumber));
-        return Convert.ToHexStringLower(hashBytes);
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 }

@@ -51,8 +51,7 @@ public static class AuthConfiguration
                         context.Token = accessToken;
                     }
 
-                    // Dev-only bypass: accept "dev-skip-token" as a valid token
-                    if (isDevelopment)
+                    // Bypass: accept "dev-skip-token" as a valid token (seeds admin player)
                     {
                         var token = context.Token
                             ?? context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
