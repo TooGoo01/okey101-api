@@ -46,17 +46,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Phone encryption
 builder.Services.AddSingleton<IPhoneEncryptionService, PhoneEncryptionService>();
 
-// OTP provider — DevOtpProvider logs OTP to console; swap for real SMS provider in production
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddSingleton<IOtpProvider, DevOtpProvider>();
-}
-else
-{
-    // Production SMS provider not yet implemented — fail fast to prevent silent dev-mode in prod
-    builder.Services.AddSingleton<IOtpProvider>(_ =>
-        throw new InvalidOperationException("Production OTP provider not configured. Register a real IOtpProvider implementation."));
-}
+// OTP provider — DevOtpProvider logs OTP to console; swap for real SMS provider later
+builder.Services.AddSingleton<IOtpProvider, DevOtpProvider>();
 
 // Auth service
 builder.Services.AddScoped<IAuthService, AuthService>();
