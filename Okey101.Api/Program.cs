@@ -81,7 +81,12 @@ builder.Services.AddCors(options =>
         {
             allowedOrigins = builder.Environment.IsDevelopment()
                 ? new[] { "http://localhost:5173" }
-                : new[] { "https://walvero-okey-api.azurewebsites.net" };
+                : new[] {
+                    "https://walvero-okey-admin.azurewebsites.net",
+                    "https://walvero-okey-api.azurewebsites.net",
+                    "https://gentle-rock-043844c03.azurestaticapps.net",
+                    "https://walvero-okey-admin.azurestaticapps.net"
+                  };
         }
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
