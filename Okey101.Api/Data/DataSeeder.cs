@@ -30,8 +30,12 @@ public static class DataSeeder
                 MaxTables = 20
             });
             await db.SaveChangesAsync();
+        }
 
-            // Add a default table
+        // Ensure at least one table exists
+        var hasTable = await db.Tables.IgnoreQueryFilters().AnyAsync(t => t.QrCodeIdentifier == "TABLE-1");
+        if (!hasTable)
+        {
             db.Tables.Add(new Table
             {
                 Id = Guid.NewGuid(),

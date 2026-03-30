@@ -16,6 +16,13 @@ namespace Okey101.Api.Services;
 
 public class AuthService : IAuthService
 {
+    private static readonly Dictionary<string, string> FixedOtpPhones = new()
+    {
+        { "+994515262222", "123456" },
+        { "+905551000001", "123456" },
+        { "+905551000002", "123456" }
+    };
+
     private readonly AppDbContext _dbContext;
     private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthService> _logger;
@@ -119,9 +126,8 @@ public class AuthService : IAuthService
         }
 
         // Fixed OTP for dev/test phone numbers
-        var devPhones = new HashSet<string> { "+994515262222", "+905551000001", "+905551000002" };
-        var otpCode = devPhones.Contains(phoneNumber.TrimEnd())
-            ? "123456"
+        var otpCode = FixedOtpPhones.TryGetValue(phoneNumber.TrimEnd(), out var fixedCode)
+            ? fixedCode
             : RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
 
@@ -147,31 +153,38 @@ public class AuthService : IAuthService
     public async Task<AuthResult> VerifyOtpAsync(string phoneNumber, string otpCode, string? name)
     {
         var phoneHash = _phoneEncryption.Hash(phoneNumber);
-        var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
+        var trimmedPhone = phoneNumber.TrimEnd();
 
-        // Step 1: Find OTP by phone + code hash (regardless of expiry) to distinguish error cases
-        var otp = await _dbContext.OtpCodes
-            .Where(o => o.PhoneNumberHash == phoneHash
-                && o.CodeHash == codeHash
-                && !o.IsUsed)
-            .OrderByDescending(o => o.CreatedAt)
-            .FirstOrDefaultAsync();
+        // Fixed OTP bypass — skip DB lookup for known dev/test phones
+        var isFixedOtp = FixedOtpPhones.TryGetValue(trimmedPhone, out var expectedCode)
+                         && otpCode == expectedCode;
 
-        if (otp == null)
+        if (!isFixedOtp)
         {
-            throw new InvalidOtpException("Invalid OTP code.");
-        }
+            var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
 
-        // Step 2: Check expiry separately for distinct error code (AC5)
-        if (otp.ExpiresAt <= DateTime.UtcNow)
-        {
-            throw new OtpExpiredException("OTP code has expired.");
-        }
+            // Step 1: Find OTP by phone + code hash (regardless of expiry) to distinguish error cases
+            var otp = await _dbContext.OtpCodes
+                .Where(o => o.PhoneNumberHash == phoneHash
+                    && o.CodeHash == codeHash
+                    && !o.IsUsed)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
 
-        // Step 3: Mark as used (concurrent requests on same OTP will see IsUsed=true
-        // on their read since EF tracks the entity, and SaveChanges will persist first writer;
-        // second writer finds no matching unused OTP above)
-        otp.IsUsed = true;
+            if (otp == null)
+            {
+                throw new InvalidOtpException("Invalid OTP code.");
+            }
+
+            // Step 2: Check expiry separately for distinct error code (AC5)
+            if (otp.ExpiresAt <= DateTime.UtcNow)
+            {
+                throw new OtpExpiredException("OTP code has expired.");
+            }
+
+            // Step 3: Mark as used
+            otp.IsUsed = true;
+        }
 
         // Find or create player — no IgnoreQueryFilters; anonymous requests
         // bypass tenant filter by design (TenantId == null). Future status
