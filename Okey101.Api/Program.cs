@@ -120,16 +120,17 @@ catch (Exception ex)
 }
 
 // Middleware pipeline order matters:
-// 1. Exception handler (outermost — catches everything)
+// 1. CORS (outermost — ensures headers are always present, even on errors)
+app.UseCors("AdminPanel");
+
+// 2. Exception handler
 app.UseMiddleware<ExceptionMiddleware>();
 
-// 2. OpenAPI (dev only)
+// 3. OpenAPI (dev only)
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
-app.UseCors("AdminPanel");
 
 app.UseHttpsRedirection();
 

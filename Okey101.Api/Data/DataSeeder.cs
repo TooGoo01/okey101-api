@@ -119,11 +119,11 @@ public static class DataSeeder
         Guid? fixedId = null)
     {
         var phoneHash = phoneEncryption.Hash(phone);
-        var exists = await db.Players
+        var existing = await db.Players
             .IgnoreQueryFilters()
-            .AnyAsync(p => p.PhoneNumberHash == phoneHash);
+            .FirstOrDefaultAsync(p => p.PhoneNumberHash == phoneHash);
 
-        if (!exists)
+        if (existing is null)
         {
             db.Players.Add(new Player
             {
@@ -134,6 +134,12 @@ public static class DataSeeder
                 Role = UserRole.GameCenterAdmin,
                 TenantId = gameCenterId
             });
+        }
+        else
+        {
+            // Ensure admin role and tenant assignment
+            existing.Role = UserRole.GameCenterAdmin;
+            existing.TenantId ??= gameCenterId;
         }
     }
 }
