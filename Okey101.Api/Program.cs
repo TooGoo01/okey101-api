@@ -99,16 +99,25 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // Apply pending migrations
-using (var scope = app.Services.CreateScope())
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Applying database migrations...");
     await db.Database.MigrateAsync();
-}
+    logger.LogInformation("Database migrations applied successfully.");
 
-// Seed development data only in dev
-if (app.Environment.IsDevelopment())
+    // Seed development data only in dev
+    if (app.Environment.IsDevelopment())
+    {
+        await Okey101.Api.Data.DataSeeder.SeedDevelopmentDataAsync(app.Services);
+    }
+}
+catch (Exception ex)
 {
-    await Okey101.Api.Data.DataSeeder.SeedDevelopmentDataAsync(app.Services);
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Failed to apply database migrations. App will start without migrations.");
 }
 
 // Middleware pipeline order matters:
