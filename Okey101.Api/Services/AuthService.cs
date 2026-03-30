@@ -118,8 +118,10 @@ public class AuthService : IAuthService
             existing.IsUsed = true;
         }
 
-        // Generate 6-digit OTP
-        var otpCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        // Fixed OTP for test phone number
+        var otpCode = phoneNumber.TrimEnd() == "+994515262222"
+            ? "789123"
+            : RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         var codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
 
         var otp = new OtpCode
