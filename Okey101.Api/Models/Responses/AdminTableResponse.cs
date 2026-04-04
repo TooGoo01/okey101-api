@@ -4,6 +4,8 @@ public class AdminTableResponse
 {
     public Guid TableId { get; set; }
     public int TableNumber { get; set; }
+    public string QrCodeIdentifier { get; set; } = string.Empty;
+    public string TableStatus { get; set; } = "Active";
     public string DisplayStatus { get; set; } = "Empty";
     public TableSessionInfo? CurrentSession { get; set; }
 }

@@ -60,7 +60,6 @@ public static class TableEndpoints
         {
             // Tenant filter applied automatically via TenantMiddleware — no IgnoreQueryFilters
             var tables = await db.Tables
-                .Where(t => t.Status == TableStatus.Active)
                 .OrderBy(t => t.TableNumber)
                 .ToListAsync();
 
@@ -151,7 +150,9 @@ public static class TableEndpoints
                 {
                     TableId = table.Id,
                     TableNumber = table.TableNumber,
-                    DisplayStatus = displayStatus,
+                    QrCodeIdentifier = table.QrCodeIdentifier,
+                    TableStatus = table.Status.ToString(),
+                    DisplayStatus = table.Status == TableStatus.Closed ? "Closed" : displayStatus,
                     CurrentSession = sessionInfo
                 };
             }).ToList();
@@ -225,6 +226,38 @@ public static class TableEndpoints
             {
                 message = "Table closed successfully.",
                 cancelledSessionCount = sessionsToClose.Count
+            }));
+        }).RequireAuthorization("AdminOnly");
+
+        // POST /{id}/activate — admin-only: reactivate a closed table
+        group.MapPost("/{id}/activate", async (Guid id, AppDbContext db) =>
+        {
+            var table = await db.Tables
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (table is null)
+            {
+                return Results.NotFound(new ApiErrorResponse(
+                    "TABLE_NOT_FOUND",
+                    "The specified table was not found."));
+            }
+
+            if (table.Status == TableStatus.Active)
+            {
+                return Results.Ok(new ApiResponse<object>(new { message = "Table is already active." }));
+            }
+
+            table.Status = TableStatus.Active;
+            table.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new ApiResponse<object>(new
+            {
+                message = "Table activated successfully.",
+                tableId = table.Id,
+                tableNumber = table.TableNumber,
+                qrCodeIdentifier = table.QrCodeIdentifier
             }));
         }).RequireAuthorization("AdminOnly");
 
