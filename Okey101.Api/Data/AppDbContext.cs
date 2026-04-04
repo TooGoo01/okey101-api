@@ -36,6 +36,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(256);
             entity.Property(e => e.PhoneNumberHash).IsRequired().HasMaxLength(64);
             entity.Property(e => e.Role).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Username).HasMaxLength(50);
+            entity.Property(e => e.PasswordHash).HasMaxLength(256);
+            entity.HasIndex(e => e.Username).IsUnique().HasFilter("[Username] IS NOT NULL").HasDatabaseName("IX_Players_Username");
             entity.HasIndex(e => e.PhoneNumberHash).HasDatabaseName("IX_Players_PhoneNumberHash");
 
             // Global tenant query filter — null TenantId on provider means superadmin (bypasses filter)

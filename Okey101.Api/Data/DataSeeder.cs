@@ -54,6 +54,17 @@ public static class DataSeeder
             "+994515262222", "Admin", Guid.Parse(AuthConfiguration.DevPlayerId));
         await SeedAdminPlayer(db, phoneEncryption, centerId,
             "+905551000001", "Admin Two");
+
+        // Set username/password on the admin player
+        await db.SaveChangesAsync(); // Save pending player inserts first
+        var adminPlayer = await db.Players.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == Guid.Parse(AuthConfiguration.DevPlayerId));
+        if (adminPlayer is not null && adminPlayer.Username is null)
+        {
+            adminPlayer.Username = "admin";
+            adminPlayer.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin1234");
+            await db.SaveChangesAsync();
+        }
     }
 
     public static async Task SeedDevelopmentDataAsync(IServiceProvider services)
@@ -174,4 +185,5 @@ public static class DataSeeder
             existing.TenantId ??= gameCenterId;
         }
     }
+
 }

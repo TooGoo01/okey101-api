@@ -74,6 +74,13 @@ public static class AuthConfiguration
                     }
 
                     return Task.CompletedTask;
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("JwtAuth");
+                    logger.LogError(context.Exception, "JWT authentication failed");
+                    return Task.CompletedTask;
                 }
             };
         });

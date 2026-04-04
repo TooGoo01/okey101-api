@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Okey101.Api.Data;
+using Okey101.Api.Models.Entities;
 using Okey101.Api.Models.Enums;
 using Okey101.Api.Models.Requests;
 using Okey101.Api.Models.Responses;
@@ -55,9 +56,41 @@ public static partial class AuthEndpoints
             return Results.Ok(new { data = result });
         });
 
+        group.MapPost("/login", async (AdminLoginRequest request, AppDbContext db, IAuthService authService) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                throw new ArgumentException("Username and password are required.");
+            }
+
+            var player = await db.Players
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.Username == request.Username);
+
+            if (player is null || string.IsNullOrEmpty(player.PasswordHash))
+            {
+                throw new UnauthorizedAccessException("Invalid username or password.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, player.PasswordHash))
+            {
+                throw new UnauthorizedAccessException("Invalid username or password.");
+            }
+
+            var tokenResponse = authService.GenerateAccessToken(player);
+            return Results.Ok(new { data = new
+            {
+                accessToken = tokenResponse.AccessToken,
+                expiresAt = tokenResponse.ExpiresAt,
+                user = new { id = player.Id, name = player.Name },
+                refreshToken = (string?)null
+            }});
+        });
+
         group.MapGet("/me", async (HttpContext httpContext, AppDbContext db) =>
         {
-            var userIdClaim = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var userIdClaim = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
             {
                 return Results.Unauthorized();

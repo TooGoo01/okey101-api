@@ -10,6 +10,8 @@ public class Player
     public string PhoneNumberHash { get; set; } = string.Empty;
     public UserRole Role { get; set; } = UserRole.Player;
     public Guid? TenantId { get; set; }
+    public string? Username { get; set; }
+    public string? PasswordHash { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
