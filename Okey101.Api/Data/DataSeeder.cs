@@ -51,7 +51,7 @@ public static class DataSeeder
         // Seed default admin players (runs in all environments)
         var phoneEncryption = scope.ServiceProvider.GetRequiredService<IPhoneEncryptionService>();
         await SeedAdminPlayer(db, phoneEncryption, centerId,
-            "+994515262222", "Admin", Guid.Parse(AuthConfiguration.DevPlayerId));
+            "+994515262222", "Admin", Guid.Parse(AuthConfiguration.DevPlayerId), UserRole.PlatformAdmin);
         await SeedAdminPlayer(db, phoneEncryption, centerId,
             "+905551000001", "Admin Two");
 
@@ -99,7 +99,7 @@ public static class DataSeeder
         // Seed the dev admin player with a well-known ID (matches dev-skip-token bypass)
         var devPlayerId = Guid.Parse(AuthConfiguration.DevPlayerId);
         await SeedAdminPlayer(db, phoneEncryption, gameCenterId,
-            "+905551000001", "Admin One", devPlayerId);
+            "+905551000001", "Admin One", devPlayerId, UserRole.PlatformAdmin);
         await SeedAdminPlayer(db, phoneEncryption, gameCenterId,
             "+905551000002", "Admin Two");
 
@@ -131,9 +131,9 @@ public static class DataSeeder
         Guid gameCenterId,
         string phone,
         string name,
-        Guid? fixedId = null)
+        Guid? fixedId = null,
+        UserRole role = UserRole.GameCenterAdmin)
     {
-        // If a fixedId is specified, ensure a player with that exact ID exists
         if (fixedId.HasValue)
         {
             var existingById = await db.Players
@@ -149,13 +149,13 @@ public static class DataSeeder
                     Name = name,
                     PhoneNumber = phoneEncryption.Encrypt(phone),
                     PhoneNumberHash = phoneHash,
-                    Role = UserRole.GameCenterAdmin,
+                    Role = role,
                     TenantId = gameCenterId
                 });
             }
             else
             {
-                existingById.Role = UserRole.GameCenterAdmin;
+                existingById.Role = role;
                 existingById.TenantId ??= gameCenterId;
             }
             return;
@@ -174,14 +174,13 @@ public static class DataSeeder
                 Name = name,
                 PhoneNumber = phoneEncryption.Encrypt(phone),
                 PhoneNumberHash = hash,
-                Role = UserRole.GameCenterAdmin,
+                Role = role,
                 TenantId = gameCenterId
             });
         }
         else
         {
-            // Ensure admin role and tenant assignment
-            existing.Role = UserRole.GameCenterAdmin;
+            existing.Role = role;
             existing.TenantId ??= gameCenterId;
         }
     }
