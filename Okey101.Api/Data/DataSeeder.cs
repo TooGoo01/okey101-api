@@ -38,10 +38,10 @@ public static class DataSeeder
         }
         await db.SaveChangesAsync();
 
-        // Ensure 6 tables exist (TABLE-1 .. TABLE-6)
-        for (var i = 1; i <= 6; i++)
+        // Ensure 10 tables exist (BADAM-1 .. BADAM-10)
+        for (var i = 1; i <= 10; i++)
         {
-            var qr = $"TABLE-{i}";
+            var qr = $"BADAM-{i}";
             var exists = await db.Tables.IgnoreQueryFilters()
                 .AnyAsync(t => t.QrCodeIdentifier == qr && t.GameCenterId == centerId);
             if (!exists)
