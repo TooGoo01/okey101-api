@@ -17,36 +17,55 @@ public static class DataSeeder
 
         var centerId = Guid.Parse(AuthConfiguration.DevTenantId);
 
-        // Ensure at least one game center exists
-        var hasAny = await db.GameCenters.IgnoreQueryFilters().AnyAsync();
-        if (!hasAny)
+        // Ensure game center exists and update name
+        var center = await db.GameCenters.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(gc => gc.Id == centerId);
+        if (center is null)
         {
             db.GameCenters.Add(new GameCenter
             {
                 Id = centerId,
-                Name = "Walvero Okey Center",
-                Location = "Baku, Azerbaijan",
+                Name = "Badam",
+                Location = "Bakı, Azərbaycan",
                 IsActive = true,
                 MaxTables = 20
             });
-            await db.SaveChangesAsync();
         }
-
-        // Ensure at least one table exists
-        var hasTable = await db.Tables.IgnoreQueryFilters().AnyAsync(t => t.QrCodeIdentifier == "TABLE-1");
-        if (!hasTable)
+        else
         {
-            db.Tables.Add(new Table
-            {
-                Id = Guid.NewGuid(),
-                TenantId = centerId,
-                TableNumber = 1,
-                Status = TableStatus.Active,
-                QrCodeIdentifier = "TABLE-1",
-                GameCenterId = centerId
-            });
-            await db.SaveChangesAsync();
+            center.Name = "Badam";
+            center.Location = "Bakı, Azərbaycan";
         }
+        await db.SaveChangesAsync();
+
+        // Ensure 6 tables exist (TABLE-1 .. TABLE-6)
+        for (var i = 1; i <= 6; i++)
+        {
+            var qr = $"TABLE-{i}";
+            var exists = await db.Tables.IgnoreQueryFilters()
+                .AnyAsync(t => t.QrCodeIdentifier == qr && t.GameCenterId == centerId);
+            if (!exists)
+            {
+                db.Tables.Add(new Table
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = centerId,
+                    TableNumber = i,
+                    Status = TableStatus.Active,
+                    QrCodeIdentifier = qr,
+                    GameCenterId = centerId
+                });
+            }
+            else
+            {
+                // Reactivate if closed
+                var table = await db.Tables.IgnoreQueryFilters()
+                    .FirstAsync(t => t.QrCodeIdentifier == qr && t.GameCenterId == centerId);
+                if (table.Status == TableStatus.Closed)
+                    table.Status = TableStatus.Active;
+            }
+        }
+        await db.SaveChangesAsync();
 
         // Seed default admin players (runs in all environments)
         var phoneEncryption = scope.ServiceProvider.GetRequiredService<IPhoneEncryptionService>();
