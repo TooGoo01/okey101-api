@@ -192,6 +192,14 @@ public class AuthService : IAuthService
         var player = await _dbContext.Players
             .FirstOrDefaultAsync(p => p.PhoneNumberHash == phoneHash);
 
+        // Find default game center for assigning TenantId
+        var defaultCenter = await _dbContext.GameCenters
+            .IgnoreQueryFilters()
+            .Where(gc => gc.IsActive)
+            .OrderBy(gc => gc.CreatedAt)
+            .Select(gc => gc.Id)
+            .FirstOrDefaultAsync();
+
         if (player == null)
         {
             player = new Player
@@ -201,10 +209,18 @@ public class AuthService : IAuthService
                 PhoneNumber = _phoneEncryption.Encrypt(phoneNumber),
                 PhoneNumberHash = phoneHash,
                 Role = UserRole.Player,
+                TenantId = defaultCenter != Guid.Empty ? defaultCenter : null,
                 CreatedAt = DateTime.UtcNow
             };
             _dbContext.Players.Add(player);
-            _logger.LogInformation("New player registered: {PlayerId}", player.Id);
+            _logger.LogInformation("New player registered: {PlayerId} with TenantId: {TenantId}", player.Id, player.TenantId);
+        }
+
+        // Fix existing players without TenantId
+        if (player.TenantId == null && defaultCenter != Guid.Empty)
+        {
+            player.TenantId = defaultCenter;
+            _logger.LogInformation("Fixed TenantId for player {PlayerId}", player.Id);
         }
 
         await _dbContext.SaveChangesAsync();
